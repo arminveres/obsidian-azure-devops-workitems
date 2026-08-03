@@ -1,5 +1,5 @@
 import {
-	Editor,
+	type Editor,
 	MarkdownView,
 	Notice,
 	Plugin,
@@ -101,7 +101,8 @@ export default class AzdoPlugin extends Plugin {
 	// ------------------------------------------------------------------ settings
 
 	async loadSettings(): Promise<void> {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		const stored = (await this.loadData()) as Partial<AzdoSettings> | null;
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, stored);
 	}
 
 	async saveSettings(): Promise<void> {
@@ -339,7 +340,7 @@ export default class AzdoPlugin extends Plugin {
 			this.protocolActions.add(action);
 			this.registerObsidianProtocolHandler(action, (params) => {
 				if (this.auth instanceof EntraAuthProvider) {
-					void this.auth.handleCallback(params as unknown as Record<string, string>);
+					void this.auth.handleCallback(params);
 				}
 			});
 		}

@@ -1,4 +1,4 @@
-import { App, Notice, Platform, PluginSettingTab, Setting } from "obsidian";
+import { type App, Notice, Platform, PluginSettingTab, Setting } from "obsidian";
 import {
 	DEFAULT_ENTRA_SCOPE,
 	DEFAULT_REDIRECT_URI,

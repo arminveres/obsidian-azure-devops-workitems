@@ -1,4 +1,4 @@
-import { App, SuggestModal } from "obsidian";
+import { type App, SuggestModal } from "obsidian";
 import type AzdoPlugin from "./main";
 import type { WorkItem } from "./azdo/types";
 import { SearchDebouncer, type Suggestion } from "./searchDebouncer";

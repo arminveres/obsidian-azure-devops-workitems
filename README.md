@@ -180,6 +180,7 @@ comes back rejected is discarded and re-acquired once before the error surfaces.
 ```bash
 npm install
 npm run dev     # watch build
+npm run lint    # ESLint — must pass before a change is done
 npm run build   # type check + production bundle
 ```
 

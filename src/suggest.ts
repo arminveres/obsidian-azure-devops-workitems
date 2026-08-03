@@ -1,7 +1,7 @@
 import {
-	App,
-	Editor,
-	EditorPosition,
+	type App,
+	type Editor,
+	type EditorPosition,
 	EditorSuggest,
 	type EditorSuggestContext,
 	type EditorSuggestTriggerInfo,
@@ -63,12 +63,12 @@ export class WorkItemSuggest extends EditorSuggest<Suggestion> {
 
 		// The trigger must start a word, so `mail@az#` or `xaz#` do not fire it.
 		const charBefore = start > 0 ? beforeCursor[start - 1] : "";
-		if (charBefore && !/[\s(\[{<"'*_,;:]/.test(charBefore)) return null;
+		if (charBefore && !/[\s([{<"'*_,;:]/.test(charBefore)) return null;
 
 		const query = beforeCursor.slice(start + prefix.length);
 		if (query.length > MAX_QUERY_LENGTH) return null;
 		// Bail out on characters that mean the user is no longer picking a work item.
-		if (/[\]\)`]/.test(query)) return null;
+		if (/[\])`]/.test(query)) return null;
 		if (query.startsWith(" ")) return null;
 		if ((query.match(/ /g)?.length ?? 0) > MAX_QUERY_WORDS) return null;
 

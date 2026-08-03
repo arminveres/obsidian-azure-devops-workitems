@@ -4,7 +4,7 @@ import { RangeSetBuilder, StateEffect, type EditorState, type Extension } from "
 import {
 	Decoration,
 	type DecorationSet,
-	EditorView,
+	type EditorView,
 	type PluginValue,
 	ViewPlugin,
 	type ViewUpdate,
