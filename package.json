@@ -1,6 +1,6 @@
 {
   "name": "obsidian-azure-devops-workitems",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Reference Azure DevOps work items inline in your notes, the way you would in an Azure DevOps comment.",
   "main": "main.js",
   "type": "module",
