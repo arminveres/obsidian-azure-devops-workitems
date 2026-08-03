@@ -111,7 +111,23 @@ This plugin is aimed at the community catalogue, so its review rules apply:
 
 ## Releases
 
-`manifest.json` and `versions.json` are updated by `npm version` via `version-bump.mjs`. Pushing a
-tag triggers `.github/workflows/release.yml`, which lints, builds and drafts a GitHub release with
-`main.js`, `manifest.json` and `styles.css`. Bump `minAppVersion` only when a newer Obsidian API is
-actually required.
+Releases are cut from `main`, tagged with a bare version number (`1.0.3`, no `v` prefix).
+
+1. Make sure `main` is up to date and `npm run lint` and `npm run build` both pass.
+2. `npm version patch|minor|major`. The `version` script runs `version-bump.mjs`, which writes the
+   new version into `manifest.json` and adds a `version → minAppVersion` entry to `versions.json`,
+   then stages both. npm makes the commit and the tag.
+3. `git push origin main --follow-tags`.
+4. The tag push triggers `.github/workflows/release.yml`, which lints, builds, attests and creates a
+   **draft** release with `main.js`, `manifest.json` and `styles.css` attached.
+5. Replace the draft's auto-generated notes with a handwritten description, then publish it.
+   `gh release edit "$tag" --notes-file - --draft=false` does both in one go.
+
+The description is what users see in Obsidian's plugin list, and the community catalogue's automated
+review flags releases that have none — never publish an empty one. Match the house style of the
+earlier releases: one sentence saying what this release is, a short bullet list of user-visible
+changes, and a closing line such as "No functional change." when nothing user-facing moved. Write
+for plugin users, not for contributors — no commit hashes, no file paths, no rule names.
+
+Bump `minAppVersion` only when a newer Obsidian API is actually required; it is read from
+`manifest.json` at bump time, so change it *before* running `npm version`.
