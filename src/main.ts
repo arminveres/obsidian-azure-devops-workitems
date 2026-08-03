@@ -4,7 +4,6 @@ import {
 	Notice,
 	Plugin,
 	type EditorPosition,
-	type MarkdownFileInfo,
 } from "obsidian";
 import type { EditorView } from "@codemirror/view";
 import { AzdoClient, parseWorkItemUrl } from "./azdo/client";
@@ -399,7 +398,7 @@ export default class AzdoPlugin extends Plugin {
 		this.registerEvent(
 			this.app.workspace.on(
 				"editor-paste",
-				(event: ClipboardEvent, editor: Editor, _info: MarkdownFileInfo) => {
+				(event: ClipboardEvent, editor: Editor) => {
 					if (!this.settings.convertPastedLinks) return;
 					if (event.defaultPrevented) return;
 

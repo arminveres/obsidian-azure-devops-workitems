@@ -5,7 +5,6 @@ import {
 	EditorSuggest,
 	type EditorSuggestContext,
 	type EditorSuggestTriggerInfo,
-	TFile,
 } from "obsidian";
 import type AzdoPlugin from "./main";
 import { SearchDebouncer, type Suggestion } from "./searchDebouncer";
@@ -53,7 +52,6 @@ export class WorkItemSuggest extends EditorSuggest<Suggestion> {
 	onTrigger(
 		cursor: EditorPosition,
 		editor: Editor,
-		_file: TFile | null,
 	): EditorSuggestTriggerInfo | null {
 		const prefix = this.plugin.settings.triggerPrefix;
 		if (!prefix) return null;
@@ -109,7 +107,7 @@ export class WorkItemSuggest extends EditorSuggest<Suggestion> {
 		);
 	}
 
-	selectSuggestion(suggestion: Suggestion, _evt: MouseEvent | KeyboardEvent): void {
+	selectSuggestion(suggestion: Suggestion): void {
 		const context = this.context;
 		if (!context) return;
 

@@ -160,8 +160,7 @@ export class AzureCliAuthProvider implements AuthProvider {
 	}
 
 	private runAz(args: string[]): Promise<ExecResult> {
-		// Required lazily: `child_process` does not exist in the mobile runtime.
-		// eslint-disable-next-line @typescript-eslint/no-var-requires
+		// eslint-disable-next-line @typescript-eslint/no-require-imports -- required lazily so the mobile runtime, which has no `child_process`, never evaluates this line; every caller sits behind a Platform.isDesktopApp check
 		const { execFile } = require("child_process") as typeof import("child_process");
 		const process_ = (globalThis as { process?: NodeJS.Process }).process;
 

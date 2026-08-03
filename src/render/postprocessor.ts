@@ -1,4 +1,4 @@
-import type { MarkdownPostProcessor, MarkdownPostProcessorContext } from "obsidian";
+import type { MarkdownPostProcessor } from "obsidian";
 import type AzdoPlugin from "../main";
 import { parseWorkItemUrl } from "../azdo/client";
 import { createChipShell, fillChip } from "../chip";
@@ -9,7 +9,7 @@ import { labelToFallbackTitle } from "../reference";
  * Every work item on the rendered chunk is fetched in one batched request.
  */
 export function createWorkItemPostProcessor(plugin: AzdoPlugin): MarkdownPostProcessor {
-	return (el: HTMLElement, _ctx: MarkdownPostProcessorContext) => {
+	return (el: HTMLElement) => {
 		if (!plugin.settings.renderInReadingView) return;
 		// Without credentials nothing can be hydrated, so leave the plain link alone.
 		if (!plugin.client.isConfigured) return;
