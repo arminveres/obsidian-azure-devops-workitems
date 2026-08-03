@@ -1,0 +1,31 @@
+{
+  "name": "obsidian-azure-devops-workitems",
+  "version": "1.0.0",
+  "description": "Reference Azure DevOps work items inline in your notes, the way you would in an Azure DevOps comment.",
+  "main": "main.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "tsc --noEmit --skipLibCheck && node esbuild.config.mjs production",
+    "typecheck": "tsc --noEmit --skipLibCheck",
+    "version": "node version-bump.mjs"
+  },
+  "keywords": [
+    "obsidian",
+    "obsidian-plugin",
+    "azure-devops",
+    "work-items"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@codemirror/language": "^6.10.2",
+    "@codemirror/state": "6.5.0",
+    "@codemirror/view": "6.38.6",
+    "@types/node": "^20.14.0",
+    "builtin-modules": "^3.3.0",
+    "esbuild": "^0.21.5",
+    "obsidian": "^1.5.7",
+    "tslib": "^2.6.2",
+    "typescript": "^5.4.5"
+  }
+}

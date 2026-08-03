@@ -1,0 +1,356 @@
+/* ------------------------------------------------------------------ chips */
+
+.azdo-chip-wrapper {
+	display: inline;
+}
+
+a.azdo-chip {
+	display: inline-flex;
+	align-items: baseline;
+	gap: 0.35em;
+	max-width: 100%;
+	padding: 0.05em 0.5em 0.1em;
+	border: 1px solid var(--background-modifier-border);
+	border-left: 3px solid var(--azdo-type-color, var(--text-accent));
+	border-radius: 4px;
+	background-color: var(--azdo-type-color-soft, var(--background-modifier-hover));
+	color: var(--text-normal);
+	font-size: 0.92em;
+	line-height: 1.45;
+	text-decoration: none !important;
+	vertical-align: baseline;
+	cursor: pointer;
+	transition:
+		background-color 120ms ease,
+		border-color 120ms ease;
+}
+
+a.azdo-chip:hover {
+	border-color: var(--azdo-type-color, var(--text-accent));
+	background-color: var(--background-modifier-hover);
+	text-decoration: none !important;
+}
+
+.azdo-chip__icon {
+	display: inline-flex;
+	align-self: center;
+	flex: 0 0 auto;
+}
+
+.azdo-chip__icon .svg-icon {
+	width: 0.95em;
+	height: 0.95em;
+	stroke-width: 2.2;
+}
+
+.azdo-chip__id {
+	flex: 0 0 auto;
+	color: var(--text-muted);
+	font-family: var(--font-monospace);
+	font-size: 0.9em;
+	font-variant-numeric: tabular-nums;
+}
+
+.azdo-chip__title {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-weight: 500;
+}
+
+.azdo-chip__state {
+	display: inline-flex;
+	align-items: center;
+	align-self: center;
+	gap: 0.3em;
+	flex: 0 0 auto;
+	padding-left: 0.35em;
+	border-left: 1px solid var(--background-modifier-border);
+	color: var(--text-muted);
+	font-size: 0.85em;
+	white-space: nowrap;
+}
+
+.azdo-chip__state-dot,
+.azdo-chip__dot {
+	display: inline-block;
+	width: 0.55em;
+	height: 0.55em;
+	border-radius: 50%;
+	background-color: var(--azdo-state-color, var(--text-muted));
+}
+
+.azdo-chip__assignee {
+	flex: 0 0 auto;
+	color: var(--text-faint);
+	font-size: 0.85em;
+	white-space: nowrap;
+}
+
+.azdo-chip--closed .azdo-chip__title {
+	text-decoration: line-through;
+	color: var(--text-muted);
+	font-weight: 400;
+}
+
+.azdo-chip--loading {
+	opacity: 0.75;
+}
+
+.azdo-chip--error,
+.azdo-chip--missing {
+	border-left-color: var(--text-faint);
+	background-color: transparent;
+	color: var(--text-muted);
+}
+
+.azdo-chip__spinner {
+	display: inline-block;
+	align-self: center;
+	width: 0.75em;
+	height: 0.75em;
+	border: 1.5px solid var(--background-modifier-border);
+	border-top-color: var(--text-muted);
+	border-radius: 50%;
+	animation: azdo-spin 700ms linear infinite;
+}
+
+@keyframes azdo-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.azdo-chip__spinner {
+		animation: none;
+	}
+}
+
+/* ------------------------------------------------------------ suggestions */
+
+.suggestion-item.azdo-suggestion,
+.azdo-suggestion {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.6em;
+	padding: 0.4em 0.6em;
+}
+
+.azdo-suggestion__icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+	margin-top: 0.15em;
+	color: var(--azdo-type-color, var(--text-accent));
+}
+
+.azdo-suggestion__icon .azdo-chip__dot {
+	background-color: var(--azdo-type-color, var(--text-muted));
+}
+
+.azdo-suggestion__icon .svg-icon {
+	width: 1em;
+	height: 1em;
+}
+
+.azdo-suggestion__body {
+	min-width: 0;
+	flex: 1 1 auto;
+}
+
+.azdo-suggestion__title-row {
+	display: flex;
+	align-items: baseline;
+	gap: 0.45em;
+	min-width: 0;
+}
+
+.azdo-suggestion__id {
+	flex: 0 0 auto;
+	color: var(--text-muted);
+	font-family: var(--font-monospace);
+	font-size: 0.85em;
+	font-variant-numeric: tabular-nums;
+}
+
+.azdo-suggestion__title {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-weight: 500;
+}
+
+.azdo-suggestion__meta {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.75em;
+	margin-top: 0.15em;
+	color: var(--text-muted);
+	font-size: 0.8em;
+}
+
+.azdo-suggestion__state {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35em;
+}
+
+.azdo-suggestion__iteration,
+.azdo-suggestion__assignee {
+	color: var(--text-faint);
+}
+
+.azdo-suggestion--message {
+	flex-direction: column;
+	gap: 0.2em;
+	cursor: default;
+}
+
+.azdo-suggestion__message {
+	color: var(--text-muted);
+}
+
+.azdo-suggestion__detail {
+	color: var(--text-faint);
+	font-size: 0.82em;
+}
+
+.azdo-search-modal .prompt-results {
+	max-height: 24em;
+}
+
+/* ------------------------------------------------------------ hover card */
+
+.azdo-hover-card {
+	position: fixed;
+	z-index: var(--layer-popover, 30);
+	width: 340px;
+	padding: 0.8em 0.9em;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 8px;
+	background-color: var(--background-primary);
+	box-shadow: var(--shadow-s, 0 4px 16px rgba(0, 0, 0, 0.25));
+	font-size: var(--font-ui-small);
+	line-height: 1.45;
+}
+
+.azdo-hover-card__header {
+	display: flex;
+	align-items: center;
+	gap: 0.5em;
+	margin-bottom: 0.35em;
+	color: var(--text-muted);
+	font-size: 0.9em;
+}
+
+.azdo-hover-card__icon {
+	display: inline-flex;
+	color: var(--azdo-type-color, var(--text-accent));
+}
+
+.azdo-hover-card__icon .svg-icon {
+	width: 1em;
+	height: 1em;
+}
+
+.azdo-hover-card__type {
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.03em;
+}
+
+.azdo-hover-card__id {
+	font-family: var(--font-monospace);
+	font-variant-numeric: tabular-nums;
+}
+
+.azdo-hover-card__state {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.3em;
+	margin-left: auto;
+}
+
+.azdo-hover-card__title {
+	margin-bottom: 0.5em;
+	color: var(--text-normal);
+	font-size: 1.05em;
+	font-weight: 600;
+}
+
+.azdo-hover-card__meta {
+	display: grid;
+	gap: 0.2em;
+	margin-bottom: 0.5em;
+}
+
+.azdo-hover-card__row {
+	display: flex;
+	gap: 0.6em;
+}
+
+.azdo-hover-card__label {
+	flex: 0 0 6.5em;
+	color: var(--text-faint);
+}
+
+.azdo-hover-card__value {
+	overflow: hidden;
+	color: var(--text-muted);
+	text-overflow: ellipsis;
+}
+
+.azdo-hover-card__tags {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.3em;
+}
+
+.azdo-hover-card__tag {
+	padding: 0 0.4em;
+	border-radius: 3px;
+	background-color: var(--background-modifier-hover);
+	color: var(--text-muted);
+	font-size: 0.9em;
+}
+
+.azdo-hover-card__description {
+	max-height: 8em;
+	overflow: hidden;
+	padding-top: 0.45em;
+	border-top: 1px solid var(--background-modifier-border);
+	color: var(--text-muted);
+	white-space: pre-wrap;
+}
+
+.azdo-hover-card__footer {
+	margin-top: 0.6em;
+}
+
+.azdo-hover-card__link {
+	color: var(--text-accent);
+	cursor: pointer;
+}
+
+.azdo-hover-card__loading {
+	color: var(--text-muted);
+}
+
+/* ------------------------------------------------------------------ settings */
+
+.azdo-setting-note,
+.azdo-setting-warning {
+	margin: 0 0 0.75em;
+	font-size: var(--font-ui-smaller);
+}
+
+.azdo-setting-note {
+	color: var(--text-muted);
+}
+
+.azdo-setting-warning {
+	color: var(--text-warning);
+}
