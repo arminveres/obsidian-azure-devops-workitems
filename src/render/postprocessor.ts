@@ -30,7 +30,7 @@ export function createWorkItemPostProcessor(plugin: AzdoPlugin): MarkdownPostPro
 
 			const label = labelToFallbackTitle(anchor.textContent ?? "", ref.id);
 
-			const chip = createChipShell(document.createDocumentFragment(), ref.id, href);
+			const chip = createChipShell(createFragment(), ref.id, href);
 			if (ref.project) chip.dataset.azdoProject = ref.project;
 			fillChip(chip, "loading", plugin.chipOptions(), undefined, undefined, label);
 

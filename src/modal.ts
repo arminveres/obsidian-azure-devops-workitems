@@ -14,7 +14,7 @@ export class WorkItemSearchModal extends SuggestModal<Suggestion> {
 		private onChoose: (item: WorkItem) => void,
 	) {
 		super(app);
-		this.setPlaceholder("Search Azure DevOps work items by id or title…");
+		this.setPlaceholder("Search Azure DevOps work items by ID or title…");
 		this.setInstructions([
 			{ command: "↑↓", purpose: "navigate" },
 			{ command: "↵", purpose: "insert reference" },

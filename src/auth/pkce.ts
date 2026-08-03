@@ -2,8 +2,7 @@
 function base64Url(bytes: Uint8Array): string {
 	let binary = "";
 	for (const byte of bytes) binary += String.fromCharCode(byte);
-	const base64 = typeof btoa === "function" ? btoa(binary) : Buffer.from(bytes).toString("base64");
-	return base64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+	return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
 function randomBytes(length: number): Uint8Array {

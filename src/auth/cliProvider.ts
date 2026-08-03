@@ -23,6 +23,44 @@ const AZ_CANDIDATES = [
 /** Directories appended to PATH before invoking the CLI. */
 const EXTRA_PATH = ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/snap/bin"];
 
+/**
+ * The slice of `child_process` and `process` this plugin touches.
+ *
+ * Typed here rather than through `@types/node` so nothing in `src/` depends on
+ * Node's ambient declarations — they do not exist in Obsidian's mobile runtime,
+ * and static analysers that lint the released source without dev dependencies
+ * would otherwise see every Node reference as untyped.
+ */
+interface ExecFileFailure {
+	code?: string | number;
+}
+
+interface ExecFileOptions {
+	env: Record<string, string>;
+	timeout: number;
+	windowsHide: boolean;
+	maxBuffer: number;
+}
+
+interface ChildProcessModule {
+	execFile: (
+		file: string,
+		args: readonly string[],
+		options: ExecFileOptions,
+		callback: (error: ExecFileFailure | null, stdout: string, stderr: string) => void,
+	) => void;
+}
+
+interface NodeProcessLike {
+	env?: Record<string, string | undefined>;
+}
+
+/**
+ * Electron's CommonJS `require`, declared locally so this file needs none of
+ * Node's ambient type declarations.
+ */
+declare const require: (module: string) => unknown;
+
 interface CliToken {
 	accessToken: string;
 	tokenType?: string;
@@ -68,11 +106,7 @@ export class AzureCliAuthProvider implements AuthProvider {
 
 	async getAuthHeader(): Promise<string> {
 		if (!Platform.isDesktopApp) {
-			throw new AzdoError(
-				"Azure CLI sign-in is not available on mobile.",
-				undefined,
-				"Switch to a personal access token or Microsoft Entra sign-in in the plugin settings.",
-			);
+			throw desktopOnlyError();
 		}
 
 		if (this.token && Date.now() < this.expiresAt - RENEW_MARGIN_MS) {
@@ -159,19 +193,24 @@ export class AzureCliAuthProvider implements AuthProvider {
 		}
 	}
 
-	private runAz(args: string[]): Promise<ExecResult> {
-		// eslint-disable-next-line @typescript-eslint/no-require-imports -- required lazily so the mobile runtime, which has no `child_process`, never evaluates this line; every caller sits behind a Platform.isDesktopApp check
-		const { execFile } = require("child_process") as typeof import("child_process");
-		const process_ = (globalThis as { process?: NodeJS.Process }).process;
+	private async runAz(args: string[]): Promise<ExecResult> {
+		if (!Platform.isDesktop) throw desktopOnlyError();
+
+		// Loaded lazily: `child_process` does not exist in the mobile runtime, so
+		// the guard above has to keep this line unevaluated there.
+		const loaded: unknown = require("child_process");
+		const { execFile } = loaded as ChildProcessModule;
+		const nodeProcess = (window as Window & { process?: NodeProcessLike }).process;
 
 		const configured = this.binaryPath.trim();
 		const candidates = configured ? [configured] : ["az", ...AZ_CANDIDATES];
 
-		const separator = process_?.platform === "win32" ? ";" : ":";
-		const env = {
-			...(process_?.env ?? {}),
-			PATH: [process_?.env?.PATH, ...EXTRA_PATH].filter(Boolean).join(separator),
-		};
+		const inherited = nodeProcess?.env ?? {};
+		const env: Record<string, string> = {};
+		for (const [key, value] of Object.entries(inherited)) {
+			if (value !== undefined) env[key] = value;
+		}
+		env.PATH = [inherited.PATH, ...EXTRA_PATH].filter(Boolean).join(Platform.isWin ? ";" : ":");
 
 		const attempt = (index: number): Promise<ExecResult> =>
 			new Promise<ExecResult>((resolve) => {
@@ -180,12 +219,11 @@ export class AzureCliAuthProvider implements AuthProvider {
 					args,
 					{ env, timeout: 30_000, windowsHide: true, maxBuffer: 4 * 1024 * 1024 },
 					(error, stdout, stderr) => {
-						const errno = (error as NodeJS.ErrnoException | null)?.code;
 						resolve({
 							stdout: String(stdout ?? ""),
 							stderr: String(stderr ?? ""),
-							code: error ? ((error as { code?: number }).code ?? 1) : 0,
-							errno: typeof errno === "string" ? errno : undefined,
+							code: error ? (typeof error.code === "number" ? error.code : 1) : 0,
+							errno: typeof error?.code === "string" ? error.code : undefined,
 						});
 					},
 				);
@@ -225,6 +263,14 @@ export class AzureCliAuthProvider implements AuthProvider {
 	dispose(): void {
 		this.invalidate();
 	}
+}
+
+function desktopOnlyError(): AzdoError {
+	return new AzdoError(
+		"Azure CLI sign-in is not available on mobile.",
+		undefined,
+		"Switch to a personal access token or Microsoft Entra sign-in in the plugin settings.",
+	);
 }
 
 function resolveExpiry(token: CliToken): number {

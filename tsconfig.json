@@ -13,7 +13,8 @@
     "strictNullChecks": true,
     "strict": true,
     "skipLibCheck": true,
-    "lib": ["DOM", "ES5", "ES6", "ES7", "ES2018", "ES2020"]
+    "types": [],
+    "lib": ["DOM", "DOM.Iterable", "ES5", "ES6", "ES7", "ES2018", "ES2020"]
   },
   "include": ["src/**/*.ts"]
 }

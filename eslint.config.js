@@ -1,5 +1,6 @@
 import js from "@eslint/js";
 import globals from "globals";
+import obsidianmd from "eslint-plugin-obsidianmd";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
@@ -8,6 +9,8 @@ export default tseslint.config(
 	},
 	js.configs.recommended,
 	...tseslint.configs.recommendedTypeChecked,
+	// Mirrors the automated review that produces the community catalogue scorecard.
+	...obsidianmd.configs.recommended,
 	{
 		files: ["src/**/*.ts"],
 		languageOptions: {
@@ -44,7 +47,41 @@ export default tseslint.config(
 			globals: globals.node,
 		},
 		rules: {
+			// Build tooling runs in Node, not in Obsidian.
+			"obsidianmd/no-nodejs-modules": "off",
 			"no-console": "off",
+		},
+	},
+	{
+		rules: {
+			"obsidianmd/ui/sentence-case": [
+				"warn",
+				{
+					brands: [
+						"Azure DevOps",
+						"Azure DevOps Server",
+						"Azure DevOps Services",
+						"Azure CLI",
+						"Azure",
+						"Microsoft Entra",
+						"Microsoft",
+						"Obsidian",
+						"Markdown",
+					],
+					acronyms: ["API", "CLI", "HTTPS", "ID", "PAT", "README", "URI", "URL", "WIQL"],
+					ignoreWords: ["I"],
+					// Literal values and third-party UI labels, not prose the rule can
+					// safely rewrite — it turns `dev.azure.com` into `dev.Azure.com`.
+					ignoreRegex: [
+						"az#",
+						"https?://",
+						"obsidian://",
+						"^myproject$",
+						"Work items \\(read\\)",
+						"Mobile and desktop applications",
+					],
+				},
+			],
 		},
 	},
 );

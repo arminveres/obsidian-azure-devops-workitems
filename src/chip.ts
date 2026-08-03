@@ -206,14 +206,7 @@ export function createChipShell(
 	id: number,
 	href: string,
 ): HTMLAnchorElement {
-	const chip = (parent as HTMLElement).createEl
-		? (parent as HTMLElement).createEl("a", { cls: "azdo-chip azdo-chip--loading" })
-		: (() => {
-				const el = document.createElement("a");
-				el.className = "azdo-chip azdo-chip--loading";
-				parent.appendChild(el);
-				return el;
-			})();
+	const chip = parent.createEl("a", { cls: "azdo-chip azdo-chip--loading" });
 
 	chip.setAttribute("href", href);
 	chip.setAttribute("rel", "noopener");

@@ -28,6 +28,8 @@ active that link renders as a rich chip showing the work item type, id, title an
 
 ## Installation
 
+Requires Obsidian **1.13.0** or newer.
+
 ### From the community catalogue
 
 Once the plugin is published, open *Settings → Community plugins → Browse*, search for
@@ -175,6 +177,19 @@ browser CORS restrictions. Personal access tokens are sent as HTTP basic auth, a
 expects; Microsoft Entra and Azure CLI sessions are sent as bearer tokens. A bearer token that
 comes back rejected is discarded and re-acquired once before the error surfaces.
 
+## What the plugin touches
+
+Everything below is listed because Obsidian's automated review flags it, and because you deserve
+to know what a plugin holding an Azure DevOps credential does on your machine.
+
+| Capability | Where | Why |
+| --- | --- | --- |
+| Network requests | `src/azdo/client.ts`, `src/auth/entraProvider.ts` | Work item search and lookup against your organization, plus the Microsoft Entra token endpoint. Nothing is sent anywhere else — there is no telemetry. |
+| Shell execution | `src/auth/cliProvider.ts` | Only when you pick *Azure CLI session*. It runs `az account get-access-token` and `az account show` with `execFile` (no shell interpolation), on desktop only. Pick a different authentication method and the code never loads. |
+| Clipboard | `src/main.ts` | The *Convert pasted work item URLs* setting reads the pasted text so it can turn a work item URL into a reference. Turn the setting off and the handler does nothing. |
+| Base64 encode/decode | `src/auth/*` | HTTP basic auth for personal access tokens, PKCE challenges, and reading the account name out of an Entra token. No obfuscated code or hidden URLs. |
+| Local storage | `data.json` | Your settings and, depending on the method, a personal access token or an Entra refresh token. Never commit it. |
+
 ## Development
 
 ```bash
@@ -186,6 +201,9 @@ npm run build   # type check + production bundle
 
 To develop against a real vault, symlink or copy the repository into
 `<vault>/.obsidian/plugins/azure-devops-workitems/`.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for house style and what to check before opening a pull
+request.
 
 ## Troubleshooting
 

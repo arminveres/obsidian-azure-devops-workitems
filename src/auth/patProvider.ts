@@ -2,8 +2,7 @@ import { AzdoError } from "../azdo/types";
 import type { AuthProvider, AuthStatus } from "./types";
 
 function toBase64(input: string): string {
-	if (typeof btoa === "function") return btoa(input);
-	return Buffer.from(input, "utf8").toString("base64");
+	return btoa(input);
 }
 
 /**

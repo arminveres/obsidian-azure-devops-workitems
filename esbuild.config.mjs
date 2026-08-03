@@ -1,6 +1,6 @@
 import esbuild from "esbuild";
-import process from "process";
-import builtins from "builtin-modules";
+import { builtinModules } from "node:module";
+import process from "node:process";
 
 const banner = `/*
 This is a generated file. See the src/ folder for the source.
@@ -27,7 +27,8 @@ const context = await esbuild.context({
 		"@lezer/common",
 		"@lezer/highlight",
 		"@lezer/lr",
-		...builtins,
+		...builtinModules,
+		...builtinModules.map((name) => `node:${name}`),
 	],
 	format: "cjs",
 	target: "es2018",

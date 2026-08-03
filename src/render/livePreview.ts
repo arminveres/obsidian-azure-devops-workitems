@@ -66,8 +66,7 @@ class WorkItemChipWidget extends WidgetType {
 	}
 
 	toDOM(): HTMLElement {
-		const wrapper = document.createElement("span");
-		wrapper.className = "azdo-chip-wrapper";
+		const wrapper = createSpan({ cls: "azdo-chip-wrapper" });
 
 		const chip = createChipShell(wrapper, this.id, this.url);
 		if (this.project) chip.dataset.azdoProject = this.project;

@@ -79,9 +79,17 @@ This plugin is aimed at the community catalogue, so its review rules apply:
   `registerEditorExtension`) so it is torn down automatically, and clean up anything else in
   `onunload()`.
 - Command names are sentence case and must not repeat the plugin name.
+- The settings tab is declarative: implement `getSettingDefinitions()` and never add a `display()`
+  method back. Rows that need custom widgets use a `render` callback; `this.update()` re-renders.
 - Do not `console.log`; use `logError` / `reportError` in `main.ts` for failures.
-- Desktop-only code paths must be guarded with `Platform.isDesktopApp` and lazily required, so the
-  mobile runtime never evaluates them (see `src/auth/cliProvider.ts`).
+- Desktop-only code paths are guarded with `Platform.isDesktopApp`, except the guard immediately
+  around the lazy `require("child_process")` in `src/auth/cliProvider.ts`, which must stay
+  `Platform.isDesktop` — the `obsidianmd/no-nodejs-modules` rule only recognises that spelling, and
+  only as the first statement of the enclosing function.
+- `npm run lint` runs `eslint-plugin-obsidianmd`, the same ruleset as the community catalogue's
+  automated review. `tsconfig.json` sets `"types": []` on purpose: the scanner type-checks without
+  `@types/node`, so referencing Node's ambient types would produce `no-unsafe-*` findings there but
+  not locally.
 
 ## Azure DevOps API
 

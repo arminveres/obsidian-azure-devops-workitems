@@ -482,10 +482,7 @@ function readAccountName(accessToken: string | undefined): string | undefined {
 	if (!payload) return undefined;
 	try {
 		const padded = payload.replace(/-/g, "+").replace(/_/g, "/");
-		const json =
-			typeof atob === "function"
-				? atob(padded.padEnd(Math.ceil(padded.length / 4) * 4, "="))
-				: Buffer.from(padded, "base64").toString("utf8");
+		const json = atob(padded.padEnd(Math.ceil(padded.length / 4) * 4, "="));
 		const claims = JSON.parse(json) as Record<string, unknown>;
 		for (const key of ["upn", "preferred_username", "unique_name", "email"]) {
 			const value = claims[key];
