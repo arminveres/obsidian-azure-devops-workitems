@@ -1,7 +1,7 @@
 {
   "id": "azure-devops-workitems",
   "name": "Azure DevOps Work Items",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "minAppVersion": "1.4.0",
   "description": "Reference Azure DevOps work items inline. Type a trigger, search, and drop a rich work item chip into your note.",
   "author": "Florian van Dillen",
