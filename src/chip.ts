@@ -1,5 +1,5 @@
 import { setIcon } from "obsidian";
-import type { WorkItem, WorkItemTypeInfo } from "./azdo/types";
+import type { PullRequest, WorkItem, WorkItemTypeInfo } from "./azdo/types";
 
 /** Azure DevOps icon id -> Lucide icon shipped with Obsidian. */
 const ICON_BY_AZDO_ID: Record<string, string> = {
@@ -189,7 +189,7 @@ function truncate(text: string, max: number): string {
 	return `${text.slice(0, Math.max(1, max - 1)).trimEnd()}…`;
 }
 
-function applyIcon(target: HTMLElement, iconName: string, color: string): void {
+export function applyIcon(target: HTMLElement, iconName: string, color: string): void {
 	target.empty();
 	target.style.color = color;
 	setIcon(target, iconName);
@@ -198,6 +198,93 @@ function applyIcon(target: HTMLElement, iconName: string, color: string): void {
 		const dot = target.createSpan({ cls: "azdo-chip__dot" });
 		dot.style.backgroundColor = color;
 	}
+}
+
+/** Colour + icon for a pull request, following Azure DevOps' own status colours. */
+export function pullRequestStyle(pr: PullRequest): { color: string; icon: string; label: string } {
+	if (pr.status === "completed") return { color: "339947", icon: "git-merge", label: "Completed" };
+	if (pr.status === "abandoned") {
+		return { color: "B2B2B2", icon: "git-pull-request-closed", label: "Abandoned" };
+	}
+	if (pr.isDraft) return { color: "B2B2B2", icon: "git-pull-request-draft", label: "Draft" };
+	return { color: "007ACC", icon: "git-pull-request", label: "Active" };
+}
+
+/** Renders a pull request chip. Reuses the work item chip shell and styling. */
+export function fillPullRequestChip(
+	chip: HTMLAnchorElement,
+	state: ChipState,
+	options: ChipDisplayOptions,
+	pr?: PullRequest | null,
+	fallbackLabel?: string,
+): void {
+	const id = chip.dataset.azdoId ?? "";
+	chip.dataset.azdoKind = "pr";
+	chip.empty();
+	chip.removeClasses([
+		"azdo-chip--loading",
+		"azdo-chip--error",
+		"azdo-chip--missing",
+		"azdo-chip--closed",
+	]);
+	chip.dataset.azdoState = state;
+	const fallback = fallbackLabel
+		? chip.createSpan({ cls: "azdo-chip__title", text: truncate(fallbackLabel, options.maxTitleLength) })
+		: null;
+
+	if (state === "loading") {
+		fallback?.detach();
+		chip.addClass("azdo-chip--loading");
+		chip.createSpan({ cls: "azdo-chip__spinner" });
+		chip.createSpan({ cls: "azdo-chip__id", text: `!${id}` });
+		if (fallback) chip.appendChild(fallback);
+		chip.setAttribute("aria-label", `Loading pull request ${id}…`);
+		return;
+	}
+
+	if (state !== "loaded" || !pr) {
+		chip.empty();
+		chip.addClass(state === "missing" ? "azdo-chip--missing" : "azdo-chip--error");
+		applyIcon(
+			chip.createSpan({ cls: "azdo-chip__icon" }),
+			state === "missing" ? "help-circle" : "alert-triangle",
+			"var(--text-muted)",
+		);
+		chip.createSpan({ cls: "azdo-chip__id", text: `!${id}` });
+		if (fallback) chip.appendChild(fallback);
+		chip.setAttribute(
+			"aria-label",
+			state === "missing"
+				? `Pull request ${id} was not found or is not accessible`
+				: `Could not load pull request ${id}`,
+		);
+		return;
+	}
+
+	fallback?.detach();
+	const style = pullRequestStyle(pr);
+	const color = toCssColor(style.color, "var(--text-accent)");
+	chip.style.setProperty("--azdo-type-color", color);
+	chip.style.setProperty("--azdo-type-color-soft", toCssColorAlpha(style.color, 0.12, "var(--background-modifier-hover)"));
+	chip.style.setProperty("--azdo-state-color", color);
+	if (options.strikeThroughClosed && pr.status === "abandoned") chip.addClass("azdo-chip--closed");
+
+	if (options.showTypeIcon) applyIcon(chip.createSpan({ cls: "azdo-chip__icon" }), style.icon, color);
+	chip.createSpan({ cls: "azdo-chip__id", text: `!${pr.id}` });
+	if (options.showTitle) {
+		chip.createSpan({ cls: "azdo-chip__title", text: truncate(pr.title, options.maxTitleLength) });
+	}
+	if (options.showState) {
+		const stateEl = chip.createSpan({ cls: "azdo-chip__state" });
+		stateEl.createSpan({ cls: "azdo-chip__state-dot" });
+		stateEl.createSpan({ text: style.label });
+	}
+	if (options.showAssignee && pr.createdBy) {
+		chip.createSpan({ cls: "azdo-chip__assignee", text: pr.createdBy });
+	}
+	chip.setAttribute("aria-label", `Pull request ${pr.id}: ${pr.title} (${style.label})`);
+	if (options.nativeTooltip) chip.setAttribute("title", `Pull request ${pr.id}: ${pr.title}`);
+	chip.setAttribute("href", pr.url);
 }
 
 /** Creates the empty chip shell. Call {@link fillChip} once data is available. */

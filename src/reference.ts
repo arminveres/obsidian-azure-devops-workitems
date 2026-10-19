@@ -1,4 +1,6 @@
-import { parseWorkItemUrl } from "./azdo/client";
+import { parsePullRequestUrl, parseWorkItemUrl, type WorkItemRef } from "./azdo/client";
+
+export type ReferenceKind = "workitem" | "pr";
 
 export interface WorkItemLinkMatch {
 	/** Offset of the first character of the whole link in the scanned text. */
@@ -8,6 +10,7 @@ export interface WorkItemLinkMatch {
 	url: string;
 	label: string;
 	id: number;
+	kind: ReferenceKind;
 	project?: string;
 	/** True when the source was a bare URL rather than `[label](url)`. */
 	bare: boolean;
@@ -18,7 +21,7 @@ export interface WorkItemLinkMatch {
  * exactly what this plugin writes for work item titles containing brackets.
  */
 const MARKDOWN_LINK =
-	/\[((?:[^[\]\\\n]|\\.)*)\]\(\s*(?:<([^<>\n]*)>|([^()\s]+))\s*(?:"[^"\n]*")?\s*\)/g;
+	/\[((?:[^[\]\\\n]|\\.)*)\]\(\s*(?:<([^<>\n]*)>|((?:[^()\s]|\([^()\s]*\))+))\s*(?:"[^"\n]*")?\s*\)/g;
 
 /** A bare URL, optionally wrapped in angle brackets. */
 const BARE_URL = /<(https?:\/\/[^\s<>]+)>|(https?:\/\/[^\s<>()[\]]+)/g;
@@ -26,8 +29,17 @@ const BARE_URL = /<(https?:\/\/[^\s<>]+)>|(https?:\/\/[^\s<>()[\]]+)/g;
 /** Punctuation that almost always belongs to the sentence, not to the URL. */
 const TRAILING_PUNCTUATION = /[.,;:!?'"]+$/;
 
-function isWorkItemUrl(url: string): boolean {
-	return /_workitems/i.test(url);
+/** Parse a work item or pull request URL; null for anything else. */
+export function parseReference(url: string): (WorkItemRef & { kind: ReferenceKind }) | null {
+	if (/_workitems/i.test(url)) {
+		const ref = parseWorkItemUrl(url);
+		return ref && { ...ref, kind: "workitem" };
+	}
+	if (/_git/i.test(url)) {
+		const ref = parsePullRequestUrl(url);
+		return ref && { ...ref, kind: "pr" };
+	}
+	return null;
 }
 
 /** Undo the escaping applied when the label was written. */
@@ -54,9 +66,9 @@ export function findWorkItemLinks(
 		consumed.push([match.index, match.index + whole.length]);
 
 		const url = angleUrl ?? plainUrl;
-		if (!url || !isWorkItemUrl(url)) continue;
+		if (!url) continue;
 
-		const ref = parseWorkItemUrl(url);
+		const ref = parseReference(url);
 		if (!ref || !accept(ref.organizationUrl)) continue;
 
 		matches.push({
@@ -65,6 +77,7 @@ export function findWorkItemLinks(
 			url,
 			label: unescapeLabel(label),
 			id: ref.id,
+			kind: ref.kind,
 			project: ref.project,
 			bare: false,
 		});
@@ -86,9 +99,7 @@ export function findWorkItemLinks(
 			url = trimmed;
 		}
 
-		if (!isWorkItemUrl(url)) continue;
-
-		const ref = parseWorkItemUrl(url);
+		const ref = parseReference(url);
 		if (!ref || !accept(ref.organizationUrl)) continue;
 
 		matches.push({
@@ -97,6 +108,7 @@ export function findWorkItemLinks(
 			url,
 			label: "",
 			id: ref.id,
+			kind: ref.kind,
 			project: ref.project,
 			bare: true,
 		});
@@ -106,11 +118,11 @@ export function findWorkItemLinks(
 }
 
 /**
- * Strip a generated label like `B#1234 Fix login` down to the title, so a chip
+ * Strip a generated label like `B#1234 Fix login` or `!42 Fix login` down to the title, so a chip
  * that fails to load still shows something meaningful.
  */
 export function labelToFallbackTitle(label: string, id: number): string {
-	const withoutId = label.replace(new RegExp(`^\\s*[A-Za-z]*#?${id}\\b[:\\-\\s]*`), "").trim();
+	const withoutId = label.replace(new RegExp(`^\\s*[A-Za-z]*[#!]?${id}\\b[:\\-\\s]*`), "").trim();
 	return withoutId || label.trim();
 }
 

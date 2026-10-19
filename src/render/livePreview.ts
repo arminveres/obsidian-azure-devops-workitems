@@ -11,8 +11,8 @@ import {
 	WidgetType,
 } from "@codemirror/view";
 import type AzdoPlugin from "../main";
-import { createChipShell, fillChip } from "../chip";
-import { findWorkItemLinks, labelToFallbackTitle } from "../reference";
+import { createChipShell, fillChip, fillPullRequestChip } from "../chip";
+import { findWorkItemLinks, labelToFallbackTitle, type ReferenceKind } from "../reference";
 
 /** Dispatch this to force every chip in an editor to re-render. */
 export const refreshChipsEffect = StateEffect.define<null>();
@@ -47,6 +47,7 @@ class WorkItemChipWidget extends WidgetType {
 	constructor(
 		private plugin: AzdoPlugin,
 		readonly id: number,
+		readonly kind: ReferenceKind,
 		readonly url: string,
 		readonly label: string,
 		readonly project: string | undefined,
@@ -58,6 +59,7 @@ class WorkItemChipWidget extends WidgetType {
 	eq(other: WorkItemChipWidget): boolean {
 		return (
 			other.id === this.id &&
+			other.kind === this.kind &&
 			other.url === this.url &&
 			other.label === this.label &&
 			other.project === this.project &&
@@ -70,6 +72,14 @@ class WorkItemChipWidget extends WidgetType {
 
 		const chip = createChipShell(wrapper, this.id, this.url);
 		if (this.project) chip.dataset.azdoProject = this.project;
+
+		if (this.kind === "pr") {
+			const cachedPr = this.plugin.client.pullRequests.peek(String(this.id));
+			if (cachedPr) fillPullRequestChip(chip, "loaded", this.plugin.chipOptions(), cachedPr, this.label);
+			else fillPullRequestChip(chip, "loading", this.plugin.chipOptions(), undefined, this.label);
+			void this.hydratePullRequest(chip);
+			return wrapper;
+		}
 
 		const cached = this.plugin.client.workItems.peek(String(this.id));
 		if (cached) {
@@ -87,6 +97,17 @@ class WorkItemChipWidget extends WidgetType {
 
 		void this.hydrate(chip);
 		return wrapper;
+	}
+
+	private async hydratePullRequest(chip: HTMLAnchorElement): Promise<void> {
+		const options = this.plugin.chipOptions();
+		try {
+			const pr = await this.plugin.client.getPullRequest(this.id);
+			if (chip.isConnected) fillPullRequestChip(chip, pr ? "loaded" : "missing", options, pr, this.label);
+		} catch (error) {
+			this.plugin.logError(error);
+			if (chip.isConnected) fillPullRequestChip(chip, "error", options, undefined, this.label);
+		}
 	}
 
 	private async hydrate(chip: HTMLAnchorElement): Promise<void> {
@@ -191,6 +212,7 @@ export function createLivePreviewExtension(plugin: AzdoPlugin): Extension {
 								widget: new WorkItemChipWidget(
 									plugin,
 									match.id,
+									match.kind,
 									match.url,
 									labelToFallbackTitle(match.label, match.id),
 									match.project,

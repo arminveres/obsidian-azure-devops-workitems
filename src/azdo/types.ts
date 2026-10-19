@@ -33,6 +33,24 @@ export interface WorkItem {
 	fetchedAt: number;
 }
 
+export interface PullRequest {
+	id: number;
+	title: string;
+	/** `active`, `completed` or `abandoned`. */
+	status: string;
+	isDraft: boolean;
+	createdBy?: string;
+	repository: string;
+	project?: string;
+	/** Branch names without the `refs/heads/` prefix. */
+	sourceBranch: string;
+	targetBranch: string;
+	description?: string;
+	reviewers: { name: string; vote: number }[];
+	url: string;
+	fetchedAt: number;
+}
+
 export interface WorkItemTypeState {
 	name: string;
 	color?: string;

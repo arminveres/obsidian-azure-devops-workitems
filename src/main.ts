@@ -6,7 +6,7 @@ import {
 	type EditorPosition,
 } from "obsidian";
 import type { EditorView } from "@codemirror/view";
-import { AzdoClient, parseWorkItemUrl } from "./azdo/client";
+import { AzdoClient } from "./azdo/client";
 import { AzdoError, type WorkItem, type WorkItemTypeInfo } from "./azdo/types";
 import { AzureCliAuthProvider } from "./auth/cliProvider";
 import {
@@ -20,7 +20,7 @@ import type { AuthMode, AuthProvider } from "./auth/types";
 import { type ChipDisplayOptions, typeAbbreviation } from "./chip";
 import { HoverPreview } from "./hover";
 import { WorkItemSearchModal } from "./modal";
-import { sameOrganization } from "./reference";
+import { parseReference, sameOrganization } from "./reference";
 import { createLivePreviewExtension, refreshChipsEffect } from "./render/livePreview";
 import { createWorkItemPostProcessor } from "./render/postprocessor";
 import { AzdoSettingTab, DEFAULT_SETTINGS, type AzdoSettings } from "./settings";
@@ -404,9 +404,9 @@ export default class AzdoPlugin extends Plugin {
 					if (event.defaultPrevented) return;
 
 					const text = event.clipboardData?.getData("text/plain")?.trim();
-					if (!text || /\s/.test(text) || !/_workitems/i.test(text)) return;
+					if (!text || /\s/.test(text) || !/_workitems|_git/i.test(text)) return;
 
-					const ref = parseWorkItemUrl(text);
+					const ref = parseReference(text);
 					if (!ref || !this.isKnownOrganization(ref.organizationUrl)) return;
 
 					const from = editor.getCursor("from");
@@ -415,9 +415,10 @@ export default class AzdoPlugin extends Plugin {
 
 					event.preventDefault();
 
-					const placeholder = `[#${ref.id}](${formatUrl(text)})`;
+					const isPr = ref.kind === "pr";
+					const placeholder = `[${isPr ? "!" : "#"}${ref.id}](${formatUrl(text)})`;
 					editor.replaceSelection(placeholder);
-					void this.upgradePastedLink(editor, from, placeholder, ref.id);
+					void this.upgradePastedLink(editor, from, placeholder, ref.id, isPr);
 				},
 			),
 		);
@@ -429,15 +430,24 @@ export default class AzdoPlugin extends Plugin {
 		from: EditorPosition,
 		placeholder: string,
 		id: number,
+		isPr = false,
 	): Promise<void> {
 		try {
-			const item = await this.client.getWorkItem(id);
-			if (!item) return;
+			let markdown: string;
+			if (isPr) {
+				const pr = await this.client.getPullRequest(id);
+				if (!pr) return;
+				markdown = `[${escapeLinkLabel(`!${pr.id} ${pr.title}`)}](${formatUrl(pr.url)})`;
+			} else {
+				const item = await this.client.getWorkItem(id);
+				if (!item) return;
+				markdown = this.buildWorkItemMarkdown(item);
+			}
 
 			const to: EditorPosition = { line: from.line, ch: from.ch + placeholder.length };
 			if (editor.getRange(from, to) !== placeholder) return; // The user edited it meanwhile.
 
-			editor.replaceRange(this.buildWorkItemMarkdown(item), from, to);
+			editor.replaceRange(markdown, from, to);
 		} catch (error) {
 			this.logError(error);
 		}

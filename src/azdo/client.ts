@@ -4,6 +4,7 @@ import { TtlCache } from "./cache";
 import {
 	AzdoError,
 	type AzdoProject,
+	type PullRequest,
 	type RawWorkItem,
 	type WorkItem,
 	type WorkItemTypeInfo,
@@ -47,6 +48,9 @@ export interface WorkItemRef {
 	project?: string;
 	organizationUrl?: string;
 }
+
+/** Reference to a pull request parsed out of an Azure DevOps URL. */
+export type PullRequestRef = WorkItemRef;
 
 function normaliseBaseUrl(url: string): string {
 	return url.trim().replace(/\/+$/, "");
@@ -102,6 +106,7 @@ export class AzdoClient {
 	private config: AzdoClientConfig;
 
 	readonly workItems: TtlCache<WorkItem>;
+	readonly pullRequests: TtlCache<PullRequest>;
 	private typeCache: TtlCache<WorkItemTypeInfo[]>;
 	/** In-flight single work item lookups, so concurrent renderers share one batch. */
 	private pending = new Map<string, Promise<WorkItem | null>>();
@@ -111,6 +116,7 @@ export class AzdoClient {
 	constructor(config: AzdoClientConfig) {
 		this.config = config;
 		this.workItems = new TtlCache<WorkItem>(config.cacheTtlMs);
+		this.pullRequests = new TtlCache<PullRequest>(config.cacheTtlMs);
 		this.typeCache = new TtlCache<WorkItemTypeInfo[]>(60 * 60 * 1000);
 	}
 
@@ -123,11 +129,13 @@ export class AzdoClient {
 
 		this.config = config;
 		this.workItems.setTtl(config.cacheTtlMs);
+		this.pullRequests.setTtl(config.cacheTtlMs);
 		if (orgChanged) this.clearCaches();
 	}
 
 	clearCaches(): void {
 		this.workItems.clear();
+		this.pullRequests.clear();
 		this.typeCache.clear();
 		this.missing.clear();
 		this.pending.clear();
@@ -465,6 +473,55 @@ export class AzdoClient {
 		};
 	}
 
+	/**
+	 * Fetch one pull request by id. Ids are unique per organization, so no project or
+	 * repository is needed. Returns null when it is missing or not accessible.
+	 */
+	async getPullRequest(id: number): Promise<PullRequest | null> {
+		if (!this.isConfigured) return null;
+		try {
+			return await this.pullRequests.resolve(String(id), async () => {
+				const raw = await this.request<RawPullRequest>(
+					this.buildUrl(`/_apis/git/pullrequests/${id}`),
+				);
+				return this.normalisePullRequest(raw);
+			});
+		} catch (error) {
+			if (error instanceof AzdoError && error.status === 404) return null;
+			throw error;
+		}
+	}
+
+	private normalisePullRequest(raw: RawPullRequest): PullRequest {
+		const branch = (ref?: string) => (ref ?? "").replace(/^refs\/heads\//, "");
+		const project = raw.repository?.project?.name ?? this.project;
+		const repository = raw.repository?.name ?? "";
+		return {
+			id: raw.pullRequestId,
+			title: raw.title ?? `Pull request ${raw.pullRequestId}`,
+			status: raw.status ?? "active",
+			isDraft: Boolean(raw.isDraft),
+			createdBy: raw.createdBy?.displayName,
+			repository,
+			project,
+			sourceBranch: branch(raw.sourceRefName),
+			targetBranch: branch(raw.targetRefName),
+			description: raw.description,
+			reviewers: (raw.reviewers ?? []).map((r) => ({
+				name: r.displayName ?? "",
+				vote: r.vote ?? 0,
+			})),
+			url: this.buildPullRequestUrl(raw.pullRequestId, repository, project),
+			fetchedAt: Date.now(),
+		};
+	}
+
+	buildPullRequestUrl(id: number, repository: string, project?: string): string {
+		const target = (project ?? this.project).trim();
+		const base = target ? `${this.organizationUrl}/${encodeUrlSegment(target)}` : this.organizationUrl;
+		return `${base}/_git/${encodeUrlSegment(repository)}/pullrequest/${id}`;
+	}
+
 	/** Search work items by id or free text, newest first. */
 	async search(options: SearchOptions): Promise<WorkItem[]> {
 		if (!this.isConfigured) return [];
@@ -538,6 +595,76 @@ interface RawWorkItemType {
 	states?: { name: string; color?: string; category?: string }[];
 }
 
+interface RawPullRequest {
+	pullRequestId: number;
+	title?: string;
+	status?: string;
+	isDraft?: boolean;
+	description?: string;
+	sourceRefName?: string;
+	targetRefName?: string;
+	createdBy?: { displayName?: string };
+	repository?: { name?: string; project?: { name?: string } };
+	reviewers?: { displayName?: string; vote?: number }[];
+}
+
+/**
+ * Split the path before `anchor` (the `_workitems` / `_git` segment) into the
+ * project and the organization URL.
+ */
+function splitOrgAndProject(
+	url: URL,
+	segments: string[],
+	anchor: number,
+): { project?: string; organizationUrl: string } {
+	const host = url.hostname.toLowerCase();
+	const isHostedRoot = host === "dev.azure.com" || host.endsWith(".dev.azure.com");
+
+	let project: string | undefined;
+	let orgSegments: string[];
+
+	if (anchor === 0) {
+		// https://org.visualstudio.com/_workitems/edit/1
+		orgSegments = [];
+	} else if (isHostedRoot && anchor === 1) {
+		// https://dev.azure.com/org/_workitems/edit/1 — the single segment is the organization.
+		orgSegments = segments.slice(0, 1);
+	} else {
+		// The segment directly before the anchor is the project; everything before it
+		// is the organization or on-premises collection path.
+		project = segments[anchor - 1];
+		orgSegments = segments.slice(0, anchor - 1);
+	}
+
+	const organizationUrl = [url.origin, ...orgSegments.map(encodeUrlSegment)]
+		.join("/")
+		.replace(/\/+$/, "");
+	return { project, organizationUrl };
+}
+
+/**
+ * Parse an Azure DevOps pull request URL:
+ *   https://dev.azure.com/org/project/_git/repo/pullrequest/42
+ */
+export function parsePullRequestUrl(rawUrl: string): PullRequestRef | null {
+	let url: URL;
+	try {
+		url = new URL(rawUrl);
+	} catch {
+		return null;
+	}
+
+	const segments = url.pathname.split("/").filter(Boolean).map(decodePathSegment);
+	const anchor = segments.findIndex((segment) => segment.toLowerCase() === "_git");
+	if (anchor === -1) return null;
+
+	const raw = segments[anchor + 3];
+	if (segments[anchor + 2]?.toLowerCase() !== "pullrequest" || !raw) return null;
+	if (!/^\d+$/.test(raw) || !Number.isSafeInteger(Number(raw)) || Number(raw) <= 0) return null;
+
+	return { id: Number(raw), ...splitOrgAndProject(url, segments, anchor) };
+}
+
 /**
  * Parse an Azure DevOps work item URL.
  *
@@ -577,28 +704,5 @@ export function parseWorkItemUrl(rawUrl: string): WorkItemRef | null {
 
 	if (id === undefined) return null;
 
-	const host = url.hostname.toLowerCase();
-	const isHostedRoot = host === "dev.azure.com" || host.endsWith(".dev.azure.com");
-
-	let project: string | undefined;
-	let orgSegments: string[];
-
-	if (anchor === 0) {
-		// https://org.visualstudio.com/_workitems/edit/1
-		orgSegments = [];
-	} else if (isHostedRoot && anchor === 1) {
-		// https://dev.azure.com/org/_workitems/edit/1 — the single segment is the organization.
-		orgSegments = segments.slice(0, 1);
-	} else {
-		// The segment directly before `_workitems` is the project; everything before it
-		// is the organization or on-premises collection path.
-		project = segments[anchor - 1];
-		orgSegments = segments.slice(0, anchor - 1);
-	}
-
-	const organizationUrl = [url.origin, ...orgSegments.map(encodeUrlSegment)]
-		.join("/")
-		.replace(/\/+$/, "");
-
-	return { id, project, organizationUrl };
+	return { id, ...splitOrgAndProject(url, segments, anchor) };
 }

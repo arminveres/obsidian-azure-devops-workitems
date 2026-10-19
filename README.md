@@ -16,6 +16,8 @@ active that link renders as a rich chip showing the work item type, id, title an
   Searching is debounced and runs against the Azure DevOps work item tracking API.
 - **Rich chips** in both Reading view and Live Preview, coloured with the real work item type
   and state colours from your project's process template.
+- **Pull request chips.** Azure DevOps pull request links (`…/_git/repo/pullrequest/42`) render as chips
+  with status colour and a hover card (branches, reviewers). Needs the **Code → Read** token scope.
 - **Hover card** with assignee, iteration, area, tags and a description snippet.
 - **Command palette picker** — *Insert work item reference* — for when you would rather not type
   the trigger.

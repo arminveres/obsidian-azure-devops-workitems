@@ -310,7 +310,7 @@ export class AzdoSettingTab extends PluginSettingTab {
 				heading: "Advanced",
 				items: [
 					{
-						name: "Convert pasted work item URLs",
+						name: "Convert pasted work item and pull request URLs",
 						desc: "Pasting an Azure DevOps work item URL inserts a reference instead.",
 						control: { type: "toggle", key: "convertPastedLinks" },
 					},
